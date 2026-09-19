@@ -10,7 +10,7 @@ We initialized a Node.js project using **Drizzle ORM** and **PostgreSQL (with `p
 ## 2. Ingestion & Extraction Engine
 *   **[src/local-models.ts](file:///Users/nexg/Desktop/Learning/Test%20projects/LLM-recall-api/src/local-models.ts):** Runs everything on-device via **transformers.js** (`@huggingface/transformers`), no API key or network calls after the first model download:
     *   `Xenova/gte-base` for embeddings — 768 dimensions, matching the pgvector column.
-    *   `onnx-community/Llama-3.2-3B-Instruct-ONNX` for fact extraction and the contradiction check, quantized to `q8` for speed on CPU.
+    *   `onnx-community/Qwen2.5-1.5B-Instruct` for fact extraction and the contradiction check, quantized to `q8` for speed on CPU.
 *   **[src/extraction.ts](file:///Users/nexg/Desktop/Learning/Test%20projects/LLM-recall-api/src/extraction.ts):** Local models don't offer native structured-output enforcement the way Gemini's `responseSchema` did, so we prompt the model for JSON explicitly, then parse and validate the response against the **Zod schema** in **[src/types.ts](file:///Users/nexg/Desktop/Learning/Test%20projects/LLM-recall-api/src/types.ts)** ourselves — if the model's output doesn't parse or match the schema, we throw a clear error with the raw output rather than silently failing.
 
 ## 3. Conflict Resolution & Temporal Logic

@@ -24,7 +24,7 @@ Runs **fully locally** — fact extraction, embeddings, and contradiction-checki
 | ORM | [Drizzle ORM](https://orm.drizzle.team) |
 | Local models | [`@huggingface/transformers`](https://github.com/huggingface/transformers.js) |
 | Embeddings | `Xenova/gte-base` (768-dim) |
-| Extraction / reasoning | `onnx-community/Llama-3.2-3B-Instruct-ONNX` (q8) |
+| Extraction / reasoning | `onnx-community/Qwen2.5-1.5B-Instruct` (q8) |
 | Validation | Zod |
 | Protocol | [MCP](https://modelcontextprotocol.io) SDK |
 
@@ -122,5 +122,5 @@ scripts/
 
 ## Known limitations
 
-- The local 1.5B model is noticeably weaker than a hosted model like Gemini at nuanced contradiction detection — it reliably catches near-identical phrasing (e.g. "I use Windows" → "I switched to Mac") but can miss more indirect contradictions (e.g. "I'm a software engineer" → "I quit my job"). Swap the model in [`src/local-models.ts`](src/local-models.ts) for a larger variant (e.g. `Qwen2.5-3B-Instruct` or `7B-Instruct`) for better reasoning at the cost of speed and download size.
+- The local model is noticeably weaker than a hosted model like Gemini at nuanced contradiction detection — it reliably catches near-identical phrasing (e.g. "I use Windows" → "I switched to Mac") but can miss more indirect contradictions (e.g. "I'm a software engineer" → "I quit my job"). This isn't just a size limitation: we benchmarked `Qwen2.5-1.5B` against `Llama-3.2-3B` and `Qwen2.5-1.5B` at fp16 on the same three contradiction cases, and the original 1.5B q8 model scored best (2/3) — the larger/higher-precision variants scored equal or worse, and one community ONNX export of `Qwen2.5-3B` failed to load entirely (broken graph). If you want better contradiction accuracy, it's worth empirically testing candidates the same way rather than assuming bigger is better.
 - No automatic purge of expired (time-sensitive) facts — `expiresAt` is stored but nothing currently sweeps it.

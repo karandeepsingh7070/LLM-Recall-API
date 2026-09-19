@@ -22,7 +22,7 @@ let generatorLoading: Promise<TextGenerationPipeline> | null = null;
 async function getGenerator(): Promise<TextGenerationPipeline> {
   if (generator) return generator;
   if (!generatorLoading) {
-    generatorLoading = pipeline('text-generation', 'onnx-community/Qwen2.5-1.5B-Instruct', { dtype: 'q8' }) as Promise<TextGenerationPipeline>;
+    generatorLoading = pipeline('text-generation', 'onnx-community/Llama-3.2-3B-Instruct-ONNX', { dtype: 'q8' }) as Promise<TextGenerationPipeline>;
   }
   generator = await generatorLoading;
   return generator;

@@ -22,7 +22,7 @@ Runs **fully locally** — fact extraction, embeddings, and contradiction-checki
 | ORM | [Drizzle ORM](https://orm.drizzle.team) |
 | Local models | [`@huggingface/transformers`](https://github.com/huggingface/transformers.js) |
 | Embeddings | `Xenova/gte-base` (768-dim) |
-| Extraction / reasoning | `onnx-community/Qwen2.5-1.5B-Instruct` (q8) |
+| Extraction / reasoning | `onnx-community/Llama-3.2-3B-Instruct-ONNX` (q8) |
 | Validation | Zod |
 | Protocol | [MCP](https://modelcontextprotocol.io) SDK |
 

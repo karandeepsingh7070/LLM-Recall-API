@@ -1,5 +1,7 @@
 # LLM Recall API
 
+![LLM Recall API](assets/banner.webp)
+
 A self-hosted memory engine for LLM applications. It extracts atomic facts from free-form text, embeds and stores them in Postgres with `pgvector`, resolves contradictions between old and new facts automatically, and exposes hybrid (vector + keyword) search over everything it remembers.
 
 Runs **fully locally** — fact extraction, embeddings, and contradiction-checking all happen on-device via [transformers.js](https://github.com/huggingface/transformers.js), no API keys or external LLM calls required.

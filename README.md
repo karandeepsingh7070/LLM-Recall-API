@@ -76,7 +76,7 @@ Once the models are cached, everything runs offline.
 
 Open **http://localhost:3000** while the server is running for an interactive playground — feed it text, search what it remembers, and watch a live gauge of active vs. outdated facts as the conflict-resolution logic runs. It's a static page in [public/index.html](public/index.html), served directly by the API (same origin, real requests, no mock data).
 
-![Playground preview](assets/playground-preview.webp)
+![Playground demo](assets/playground-demo.gif)
 
 ## API
 

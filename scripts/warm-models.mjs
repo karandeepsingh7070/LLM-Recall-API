@@ -17,6 +17,6 @@ console.log('Downloading embedding model (Xenova/gte-base)...');
 await pipeline('feature-extraction', 'Xenova/gte-base', { dtype: 'q8', progress_callback: logProgress });
 
 console.log('Downloading generation model (onnx-community/Llama-3.2-3B-Instruct-ONNX)...');
-await pipeline('text-generation', 'onnx-community/Llama-3.2-3B-Instruct-ONNX', { dtype: 'q8', progress_callback: logProgress });
+await pipeline('text-generation', 'onnx-community/Llama-3.2-3B-Instruct-ONNX', { dtype: 'q4', progress_callback: logProgress });
 
 console.log('Both models cached. You can now run the server with tsx.');

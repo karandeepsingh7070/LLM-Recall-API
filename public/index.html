@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light" />
+<title>Memory Bank — LLM Recall API Playground</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Special+Elite&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#efe9db;
+    --paper-dark:#e3dcc9;
+    --ink:#161513;
+    --ink-soft:#4a4842;
+    --line:#181715;
+    --mid:#8f897a;
+    --card:#faf7ee;
+    --shadow:rgba(20,18,14,0.4);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Courier Prime', 'Courier New', monospace;
+    padding:20px 16px 48px;
+    position:relative;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  [hidden]{display:none!important;}
+  img{max-width:100%;}
+
+  /* film grain overlay */
+  .grain{
+    position:fixed; inset:0; pointer-events:none; z-index:999;
+    opacity:0.05; mix-blend-mode:multiply;
+  }
+  .vignette{
+    position:fixed; inset:0; pointer-events:none; z-index:998;
+    box-shadow: inset 0 0 18vw 2vw rgba(10,9,7,0.35);
+  }
+
+  h1,h2,h3, .display{
+    font-family:'Bangers', cursive;
+    letter-spacing:1px;
+    color:var(--ink);
+    margin:0;
+  }
+  .label{
+    font-family:'Special Elite', monospace;
+    text-transform:uppercase;
+    letter-spacing:1.5px;
+    font-size:11px;
+    color:var(--ink-soft);
+  }
+
+  a{color:var(--ink); text-decoration-thickness:2px;}
+
+  .wrap{ max-width:1080px; margin:0 auto; position:relative; z-index:1;}
+
+  /* ---------- marquee header ---------- */
+  .marquee{
+    position:relative;
+    border:4px solid var(--line);
+    border-radius:10px;
+    background:var(--card);
+    padding:22px 18px;
+    text-align:center;
+    box-shadow:6px 6px 0 var(--shadow);
+    overflow:hidden;
+  }
+  .marquee::before, .marquee::after{
+    content:"";
+    position:absolute; left:10px; right:10px; height:0;
+    border-top:3px dashed var(--line);
+    opacity:0.5;
+  }
+  .marquee::before{ top:8px; }
+  .marquee::after{ bottom:8px; }
+  .bulbs{
+    position:absolute; top:0; left:0; right:0; display:flex; justify-content:space-between; padding:0 6px;
+  }
+  .bulbs span{
+    width:7px; height:7px; margin-top:3px; border-radius:50%;
+    background:var(--ink);
+    animation:blink 1.4s infinite;
+  }
+  .bulbs span:nth-child(odd){animation-delay:.35s;}
+  .bulbs span:nth-child(3n){animation-delay:.7s;}
+  @keyframes blink{ 0%,100%{opacity:1;} 50%{opacity:.15;} }
+
+  .marquee h1{
+    font-size:clamp(28px,6vw,52px);
+    line-height:1;
+    display:inline-block;
+    transform:rotate(-1deg);
+  }
+  .marquee .sub{
+    font-family:'Special Elite', monospace;
+    font-size:13px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-top:6px;
+  }
+  .sparkle{ display:inline-block; animation:wobble 2.4s ease-in-out infinite; }
+  @keyframes wobble{
+    0%,100%{ transform:rotate(-8deg) scale(1); }
+    50%{ transform:rotate(8deg) scale(1.15); }
+  }
+
+  /* ---------- id badge ---------- */
+  .badge-row{
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    justify-content:center;
+    margin:22px 0;
+  }
+  .badge{
+    border:3px solid var(--line); border-radius:8px; background:var(--card);
+    padding:10px 14px; display:flex; align-items:center; gap:10px;
+    box-shadow:4px 4px 0 var(--shadow);
+    transform:rotate(-0.6deg);
+  }
+  .badge .label{margin:0;}
+  .badge input{
+    font-family:'Special Elite', monospace;
+    font-size:14px;
+    border:none; border-bottom:2px dotted var(--ink);
+    background:transparent; color:var(--ink);
+    padding:2px 4px; outline:none; min-width:140px;
+  }
+  .stamp-btn{
+    font-family:'Bangers', cursive; letter-spacing:1px; font-size:14px;
+    border:3px solid var(--line); border-radius:8px; background:var(--ink); color:var(--paper);
+    padding:8px 14px; cursor:pointer; transform:rotate(0.8deg);
+    box-shadow:4px 4px 0 var(--shadow);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .stamp-btn:hover{ transform:translate(-2px,-2px) rotate(0.8deg); box-shadow:6px 6px 0 var(--shadow); }
+  .stamp-btn:active{ transform:translate(1px,1px) rotate(0.8deg); box-shadow:2px 2px 0 var(--shadow); }
+  .stamp-btn:disabled{ opacity:.5; cursor:default; }
+  .stamp-btn.ghost{ background:var(--card); color:var(--ink); }
+
+  /* ---------- panels ---------- */
+  .panels{
+    display:grid; grid-template-columns:repeat(3, 1fr); gap:18px;
+    margin:24px 0;
+  }
+  @media (max-width:820px){ .panels{ grid-template-columns:1fr; } }
+
+  .panel{
+    border:3px solid var(--line); border-radius:10px; background:var(--card);
+    padding:16px; box-shadow:5px 5px 0 var(--shadow);
+    display:flex; flex-direction:column; gap:10px;
+    position:relative;
+  }
+  .panel h2{ font-size:22px; display:flex; align-items:center; gap:8px; }
+  .panel h2 .icon{ width:26px; height:26px; flex:none; }
+
+  textarea, input.field{
+    width:100%; font-family:'Courier Prime', monospace; font-size:14px;
+    border:2px solid var(--line); border-radius:6px; padding:8px 10px;
+    background:#fffdf6; color:var(--ink); resize:vertical;
+  }
+  textarea:focus, input.field:focus, .badge input:focus{ outline:2px solid var(--ink); outline-offset:1px; }
+
+  .cards{ display:flex; flex-direction:column; gap:8px; max-height:260px; overflow-y:auto; padding-right:2px; }
+  .fact-card{
+    border:2px solid var(--line); border-radius:6px; background:#fffdf6;
+    padding:8px 10px; font-size:13px;
+    animation:cardDrop .5s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  @keyframes cardDrop{
+    0%{ transform:translateY(-14px) scale(.9); opacity:0; }
+    100%{ transform:translateY(0) scale(1); opacity:1; }
+  }
+  .tag{
+    display:inline-block; font-family:'Special Elite', monospace; font-size:10px;
+    text-transform:uppercase; letter-spacing:1px;
+    border:1.5px solid var(--ink); border-radius:4px; padding:1px 6px; margin-right:6px;
+    transform:rotate(-2deg);
+  }
+  .tag.expiring{ border-style:dashed; }
+  .empty-note{ font-size:12px; color:var(--mid); font-style:italic; }
+
+  .search-row{ display:flex; gap:8px; }
+  .search-results{ display:flex; flex-direction:column; gap:8px; max-height:260px; overflow-y:auto; }
+  .result-row{ font-size:13px; }
+  .score-bar{ height:8px; border:1.5px solid var(--line); border-radius:4px; background:#fff; overflow:hidden; margin-top:3px; }
+  .score-bar > i{ display:block; height:100%; background:repeating-linear-gradient(45deg, var(--ink), var(--ink) 4px, transparent 4px, transparent 8px); }
+
+  /* ---------- gauge ---------- */
+  .gauge-wrap{ display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .needle{ transform-origin:100px 112px; transition:transform .8s cubic-bezier(.22,1,.36,1); }
+  .gauge-nums{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:4px;}
+  .plaque{
+    border:2px solid var(--line); border-radius:6px; padding:4px 8px; text-align:center; background:#fffdf6;
+    min-width:64px;
+  }
+  .plaque b{ display:block; font-family:'Bangers',cursive; font-size:20px; }
+  .plaque span{ font-family:'Special Elite',monospace; font-size:9px; text-transform:uppercase; color:var(--ink-soft); }
+
+  .type-gears{ display:flex; justify-content:space-around; gap:6px; margin-top:8px; }
+  .type-gear{ display:flex; flex-direction:column; align-items:center; gap:3px; text-align:center; font-size:10.5px; flex:1; }
+  .type-gear b{ font-family:'Bangers',cursive; font-size:16px; }
+  .gear-icon{ display:inline-block; font-size:26px; line-height:1; animation:spin 6s linear infinite; }
+  .type-gear:nth-child(2) .gear-icon{ animation-duration:8s; animation-direction:reverse; }
+  .type-gear:nth-child(3) .gear-icon{ animation-duration:10s; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  /* ---------- filmstrip ---------- */
+  .filmstrip{
+    border:3px solid var(--line); border-radius:10px; background:var(--ink); color:var(--paper);
+    padding:14px 10px; margin:26px 0; overflow:hidden; position:relative;
+  }
+  .filmstrip::before, .filmstrip::after{
+    content:""; position:absolute; left:0; right:0; height:14px;
+    background-image:radial-gradient(circle, var(--paper) 3px, transparent 3.5px);
+    background-size:24px 14px; background-repeat:repeat-x; background-position:6px center;
+  }
+  .filmstrip::before{ top:0; } .filmstrip::after{ bottom:0; }
+  .frames{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; padding:12px 4px; }
+  @media (max-width:700px){ .frames{ grid-template-columns:repeat(2,1fr);} }
+  .frame{ text-align:center; font-size:12px; }
+  .frame .icon{ width:40px; height:40px; margin:0 auto 6px; }
+  .frame b{ font-family:'Bangers',cursive; letter-spacing:1px; font-size:15px; display:block; }
+
+  .ticker-track{ overflow:hidden; border-top:2px dashed var(--paper); padding-top:8px; }
+  .ticker{
+    display:inline-block; white-space:nowrap; font-family:'Special Elite',monospace;
+    font-size:12px; letter-spacing:2px; animation:marquee 18s linear infinite;
+  }
+  @keyframes marquee{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
+
+  /* ---------- contract / clauses ---------- */
+  .contract{
+    border:3px solid var(--line); border-radius:4px; background:var(--card);
+    padding:22px; margin:26px 0; position:relative;
+    background-image:
+      linear-gradient(var(--card), var(--card)),
+      repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(20,18,14,0.06) 28px);
+  }
+  .contract h2{ text-align:center; font-size:26px; }
+  .contract .sub{ text-align:center; font-family:'Special Elite',monospace; font-size:11px; color:var(--ink-soft); margin-bottom:14px; }
+  .clause{ display:flex; gap:10px; margin:14px 0; align-items:flex-start; }
+  .clause .num{
+    font-family:'Bangers',cursive; font-size:22px; flex:none; width:34px; text-align:center;
+    border:2px solid var(--line); border-radius:50%; height:34px; line-height:30px;
+  }
+  .clause p{ margin:2px 0 0; font-size:13.5px; line-height:1.5; }
+  .clause b{ font-family:'Special Elite', monospace; }
+  .seal{
+    position:absolute; right:18px; bottom:14px; width:74px; height:74px;
+    border:3px solid var(--line); border-radius:50%;
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    font-family:'Bangers',cursive; font-size:10px; line-height:1.1; letter-spacing:0.5px;
+    transform:rotate(-14deg); opacity:0.85;
+  }
+
+  footer{ text-align:center; margin-top:30px; }
+  footer .stamp-line{ font-family:'Special Elite',monospace; font-size:11px; letter-spacing:1.5px; color:var(--ink-soft); }
+  footer a{ font-weight:bold; }
+
+  /* toast */
+  .toast{
+    position:fixed; left:50%; bottom:22px; transform:translateX(-50%) translateY(0);
+    background:var(--card); border:3px solid var(--line); border-radius:14px;
+    padding:10px 18px; font-size:13px; max-width:min(90vw,420px);
+    box-shadow:5px 5px 0 var(--shadow); z-index:1000;
+    animation:popIn .25s ease both;
+  }
+  .toast.error{ background:#2a2622; color:var(--paper); border-color:var(--paper); }
+  @keyframes popIn{ from{ opacity:0; transform:translateX(-50%) translateY(10px) scale(.9);} to{ opacity:1; transform:translateX(-50%) translateY(0) scale(1);} }
+
+  .spinner{
+    display:inline-block; width:14px; height:14px; border:2.5px solid currentColor;
+    border-right-color:transparent; border-radius:50%; animation:spin .7s linear infinite; vertical-align:-2px;
+  }
+</style>
+</head>
+<body>
+
+<svg class="grain" width="0" height="0">
+  <filter id="noiseFilter">
+    <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/>
+    <feColorMatrix type="saturate" values="0"/>
+  </filter>
+</svg>
+<div class="grain" style="filter:url(#noiseFilter); background:#000;"></div>
+<div class="vignette"></div>
+
+<div class="wrap">
+
+  <header class="marquee">
+    <div class="bulbs">
+      <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <h1><span class="sparkle">✦</span> THE MEMORY BANK <span class="sparkle">✦</span></h1>
+    <div class="sub">a playground for the LLM Recall API — 100% local, no cloud required</div>
+  </header>
+
+  <div class="badge-row">
+    <div class="badge">
+      <span class="label">Test subject (userId)</span>
+      <input id="userId" class="field" type="text" value="" />
+    </div>
+    <button class="stamp-btn ghost" id="newUser">New Subject</button>
+  </div>
+
+  <div class="panels">
+
+    <!-- ADD MEMORY -->
+    <section class="panel">
+      <h2>
+        <svg class="icon" viewBox="0 0 40 40" fill="none" stroke="#161513" stroke-width="2.2"><rect x="6" y="8" width="28" height="26" rx="2"/><path d="M12 16h16M12 22h16M12 28h10"/><path d="M27 5l4 4-11 11-5 1 1-5z" fill="#efe9db"/></svg>
+        Feed It
+      </h2>
+      <p class="label" style="margin:-6px 0 0;">Type anything — it'll extract atomic facts, embed them, and check for contradictions.</p>
+      <textarea id="memoryText" rows="3" placeholder="e.g. I quit my job and I'm learning pottery now."></textarea>
+      <button class="stamp-btn" id="addBtn">REMEMBER THIS!</button>
+      <div class="cards" id="addResults"></div>
+    </section>
+
+    <!-- SEARCH -->
+    <section class="panel">
+      <h2>
+        <svg class="icon" viewBox="0 0 40 40" fill="none" stroke="#161513" stroke-width="2.2"><circle cx="17" cy="17" r="10"/><path d="M25 25l9 9"/></svg>
+        Dig Through Files
+      </h2>
+      <p class="label" style="margin:-6px 0 0;">Hybrid vector + keyword search (Reciprocal Rank Fusion) over active facts.</p>
+      <div class="search-row">
+        <input id="searchQuery" class="field" type="text" placeholder="e.g. job" />
+        <button class="stamp-btn" id="searchBtn">FIND</button>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+    </section>
+
+    <!-- STATS GAUGE -->
+    <section class="panel">
+      <h2>
+        <svg class="icon" viewBox="0 0 40 40" fill="none" stroke="#161513" stroke-width="2.2"><circle cx="20" cy="20" r="15"/><circle cx="20" cy="20" r="2.4" fill="#161513"/><path d="M20 20l7-4"/></svg>
+        Memory Gauge
+      </h2>
+      <div class="gauge-wrap">
+        <svg width="200" height="118" viewBox="0 0 200 118">
+          <path d="M14 112 A86 86 0 0 1 186 112" fill="none" stroke="#161513" stroke-width="4"/>
+          <g stroke="#161513" stroke-width="2">
+            <line x1="14" y1="112" x2="24" y2="112"/>
+            <line x1="100" y1="26" x2="100" y2="36"/>
+            <line x1="186" y1="112" x2="176" y2="112"/>
+          </g>
+          <text x="10" y="106" font-family="Special Elite, monospace" font-size="8">STALE</text>
+          <text x="164" y="106" font-family="Special Elite, monospace" font-size="8">FRESH</text>
+          <line id="needle" class="needle" x1="100" y1="112" x2="100" y2="40" stroke="#161513" stroke-width="3.4" stroke-linecap="round"/>
+          <circle cx="100" cy="112" r="6" fill="#161513"/>
+        </svg>
+        <div class="gauge-nums">
+          <div class="plaque"><b id="statTotal">0</b><span>total</span></div>
+          <div class="plaque"><b id="statActive">0</b><span>active</span></div>
+          <div class="plaque"><b id="statOutdated">0</b><span>outdated</span></div>
+        </div>
+        <div class="type-gears">
+          <div class="type-gear">
+            <span class="gear-icon">&#9881;</span>
+            <div><b id="cntPreference">0</b> Preference</div>
+          </div>
+          <div class="type-gear">
+            <span class="gear-icon">&#9881;</span>
+            <div><b id="cntTask">0</b> Task</div>
+          </div>
+          <div class="type-gear">
+            <span class="gear-icon">&#9881;</span>
+            <div><b id="cntObservation">0</b> Observation</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- FILMSTRIP: how it works -->
+  <div class="filmstrip">
+    <div class="frames">
+      <div class="frame">
+        <svg class="icon" viewBox="0 0 40 40" fill="none" stroke="#efe9db" stroke-width="2.2"><rect x="6" y="8" width="28" height="26" rx="2"/><path d="M12 16h16M12 22h16"/></svg>
+        <b>1. EXTRACT</b> a local LLM pulls atomic facts from raw text
+      </div>
+      <div class="frame">
+        <svg class="icon" viewBox="0 0 40 40" fill="none" stroke="#efe9db" stroke-width="2.2"><circle cx="20" cy="20" r="4"/><circle cx="8" cy="10" r="2"/><circle cx="32" cy="12" r="2"/><circle cx="10" cy="30" r="2"/><circle cx="30" cy="30" r="2"/><path d="M20 20L8 10M20 20l12-8M20 20l-10 10M20 20l10 10"/></svg>
+        <b>2. EMBED</b> facts become 768-dim vectors in pgvector
+      </div>
+      <div class="frame">
+        <svg class="icon" viewBox="0 0 40 40" fill="none" stroke="#efe9db" stroke-width="2.2"><path d="M8 12h24M8 20h24M8 28h16"/><path d="M28 26l6 6M34 26l-6 6" stroke-width="2.6"/></svg>
+        <b>3. RECONCILE</b> contradicts an old fact? it's marked outdated
+      </div>
+      <div class="frame">
+        <svg class="icon" viewBox="0 0 40 40" fill="none" stroke="#efe9db" stroke-width="2.2"><circle cx="17" cy="17" r="10"/><path d="M25 25l9 9"/></svg>
+        <b>4. RECALL</b> hybrid RRF search surfaces what matters
+      </div>
+    </div>
+    <div class="ticker-track">
+      <span class="ticker">HYBRID SEARCH ~ AUTOMATIC CONFLICT RESOLUTION ~ TEMPORAL EXPIRY ~ FULLY LOCAL TRANSFORMERS.JS ~ NO API KEYS ~ NO CLOUD ~ &nbsp; HYBRID SEARCH ~ AUTOMATIC CONFLICT RESOLUTION ~ TEMPORAL EXPIRY ~ FULLY LOCAL TRANSFORMERS.JS ~ NO API KEYS ~ NO CLOUD ~ &nbsp;</span>
+    </div>
+  </div>
+
+  <!-- CONTRACT / CLAUSES -->
+  <section class="contract">
+    <h2>Terms of Recollection</h2>
+    <div class="sub">— being the clauses under which this engine agrees to remember things —</div>
+
+    <div class="clause">
+      <div class="num">1</div>
+      <p><b>The Extraction Clause.</b> Any text submitted shall be broken into atomic, standalone facts, each classified as a <i>Preference</i>, <i>Task</i>, or <i>Observation</i>, entirely by a model running on this machine.</p>
+    </div>
+    <div class="clause">
+      <div class="num">2</div>
+      <p><b>The Embedding Clause.</b> Every fact shall be converted into a 768-dimensional vector and stored in Postgres via pgvector, alongside a full-text index, for future retrieval.</p>
+    </div>
+    <div class="clause">
+      <div class="num">3</div>
+      <p><b>The Conflict Clause.</b> Before a new fact is filed, similar existing facts (cosine similarity &gt; 0.55) are checked by the model for contradiction. A confirmed contradiction renders the old fact <i>outdated</i>, not deleted.</p>
+    </div>
+    <div class="clause">
+      <div class="num">4</div>
+      <p><b>The Expiry Clause.</b> Facts deemed time-sensitive by the extraction model shall self-expire after 7 days.</p>
+    </div>
+    <div class="clause">
+      <div class="num">5</div>
+      <p><b>The Locality Clause.</b> No fact, embedding, or query shall ever leave this machine. There is no API key because there is no third party.</p>
+    </div>
+
+    <div class="seal">CERTIFIED<br/>LOCAL<br/>★ ★ ★</div>
+  </section>
+
+  <footer>
+    <div class="stamp-line">NO CLOUD · NO API KEYS · RUNS ENTIRELY ON THIS MACHINE</div>
+    <div class="stamp-line" style="margin-top:6px;">
+      <a href="https://github.com" target="_blank" rel="noopener">LLM Recall API</a> — see README for setup
+    </div>
+  </footer>
+
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script>
+(function(){
+  const $ = (id) => document.getElementById(id);
+  const userIdInput = $('userId');
+
+  function randomUser(){
+    const adjectives = ['curious','sleepy','brave','quiet','clever','lucky','rusty','plaid'];
+    const nouns = ['badger','pigeon','walrus','otter','beetle','moose','sparrow','yak'];
+    const a = adjectives[Math.floor(Math.random()*adjectives.length)];
+    const n = nouns[Math.floor(Math.random()*nouns.length)];
+    return a + '-' + n + '-' + Math.floor(Math.random()*90+10);
+  }
+
+  userIdInput.value = localStorage.getItem('memoryBankUserId') || randomUser();
+  localStorage.setItem('memoryBankUserId', userIdInput.value);
+  userIdInput.addEventListener('change', () => {
+    if(!userIdInput.value.trim()) userIdInput.value = randomUser();
+    localStorage.setItem('memoryBankUserId', userIdInput.value);
+    refreshStats();
+  });
+  $('newUser').addEventListener('click', () => {
+    userIdInput.value = randomUser();
+    localStorage.setItem('memoryBankUserId', userIdInput.value);
+    refreshStats();
+    $('searchResults').innerHTML = '';
+    $('addResults').innerHTML = '';
+  });
+
+  let toastTimer;
+  function toast(msg, isError){
+    const el = $('toast');
+    el.textContent = msg;
+    el.classList.toggle('error', !!isError);
+    el.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.hidden = true; }, 5000);
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  async function api(path, opts){
+    const res = await fetch(path, opts);
+    let data;
+    try { data = await res.json(); } catch(e){ data = {}; }
+    if(!res.ok){
+      throw new Error(data.error || ('Request failed (' + res.status + ')'));
+    }
+    return data;
+  }
+
+  function setNeedle(pct){
+    // pct: 0 (all stale) .. 1 (all fresh). -80deg .. +80deg around straight-up.
+    const angle = -80 + (pct * 160);
+    $('needle').style.transform = 'rotate(' + angle + 'deg)';
+  }
+
+  async function refreshStats(){
+    const userId = userIdInput.value.trim();
+    if(!userId) return;
+    try{
+      const s = await api('/stats/' + encodeURIComponent(userId));
+      $('statTotal').textContent = s.total;
+      $('statActive').textContent = s.active;
+      $('statOutdated').textContent = s.outdated;
+      $('cntPreference').textContent = s.byType.Preference || 0;
+      $('cntTask').textContent = s.byType.Task || 0;
+      $('cntObservation').textContent = s.byType.Observation || 0;
+      const pct = s.total > 0 ? s.active / s.total : 1;
+      setNeedle(pct);
+    }catch(e){
+      toast('Could not load stats: ' + e.message, true);
+    }
+  }
+
+  function factCard(m){
+    const div = document.createElement('div');
+    div.className = 'fact-card';
+    const expiring = !!m.expiresAt;
+    div.innerHTML =
+      '<span class="tag' + (expiring ? ' expiring' : '') + '">' + escapeHtml(m.type) + '</span>' +
+      (expiring ? '<span class="tag expiring">expires in 7d</span>' : '') +
+      '<div>' + escapeHtml(m.content) + '</div>';
+    return div;
+  }
+
+  $('addBtn').addEventListener('click', async () => {
+    const userId = userIdInput.value.trim();
+    const text = $('memoryText').value.trim();
+    if(!userId || !text){ toast('Type something to remember first.', true); return; }
+    const btn = $('addBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> THINKING…';
+    try{
+      const data = await api('/memory', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ userId, text })
+      });
+      const list = $('addResults');
+      if(!data.inserted || data.inserted.length === 0){
+        const note = document.createElement('div');
+        note.className = 'empty-note';
+        note.textContent = 'No new facts stored — likely a duplicate of something already remembered.';
+        list.prepend(note);
+      } else {
+        data.inserted.slice().reverse().forEach(m => list.prepend(factCard(m)));
+      }
+      $('memoryText').value = '';
+      toast('Filed ' + (data.inserted ? data.inserted.length : 0) + ' fact(s) in the archive.');
+      refreshStats();
+    }catch(e){
+      toast(e.message, true);
+    }finally{
+      btn.disabled = false;
+      btn.textContent = 'REMEMBER THIS!';
+    }
+  });
+
+  $('searchBtn').addEventListener('click', doSearch);
+  $('searchQuery').addEventListener('keydown', (e) => { if(e.key === 'Enter') doSearch(); });
+
+  async function doSearch(){
+    const userId = userIdInput.value.trim();
+    const q = $('searchQuery').value.trim();
+    if(!userId || !q){ toast('Type a search query first.', true); return; }
+    const btn = $('searchBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>';
+    try{
+      const data = await api('/search?userId=' + encodeURIComponent(userId) + '&q=' + encodeURIComponent(q));
+      const box = $('searchResults');
+      box.innerHTML = '';
+      if(!data.results || data.results.length === 0){
+        box.innerHTML = '<div class="empty-note">No matching files in the archive.</div>';
+      } else {
+        const maxScore = Math.max(...data.results.map(r => parseFloat(r.rrf_score)));
+        data.results.forEach(r => {
+          const row = document.createElement('div');
+          row.className = 'result-row';
+          const pct = Math.round((parseFloat(r.rrf_score) / maxScore) * 100);
+          row.innerHTML =
+            '<span class="tag">' + escapeHtml(r.type) + '</span>' + escapeHtml(r.content) +
+            '<div class="score-bar"><i style="width:' + pct + '%"></i></div>';
+          box.appendChild(row);
+        });
+      }
+    }catch(e){
+      toast(e.message, true);
+    }finally{
+      btn.disabled = false;
+      btn.textContent = 'FIND';
+    }
+  }
+
+  refreshStats();
+})();
+</script>
+
+</body>
+</html>

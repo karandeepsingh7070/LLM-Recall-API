@@ -46,14 +46,38 @@ export async function searchMemories(userId: string, query: string, limit = 5) {
 export async function getProfile(userId: string) {
   // A lightweight way to get the user's cached profile and facts
   const profileMemories = await db.execute(sql`
-    SELECT content, type 
-    FROM ${memories} 
+    SELECT content, type
+    FROM ${memories}
     WHERE user_id = ${userId} AND status = 'active'
     ORDER BY created_at DESC
   `);
-  
+
   return {
     userId,
     activeFacts: profileMemories
   };
+}
+
+export async function getStats(userId: string) {
+  const rows = await db.execute(sql`
+    SELECT status, type, count(*)::int as count
+    FROM ${memories}
+    WHERE user_id = ${userId}
+    GROUP BY status, type
+  `);
+
+  let active = 0;
+  let outdated = 0;
+  const byType: Record<string, number> = { Preference: 0, Task: 0, Observation: 0 };
+
+  for (const row of rows as unknown as { status: string; type: string; count: number }[]) {
+    if (row.status === 'active') {
+      active += row.count;
+      byType[row.type] = (byType[row.type] ?? 0) + row.count;
+    } else {
+      outdated += row.count;
+    }
+  }
+
+  return { userId, active, outdated, total: active + outdated, byType };
 }

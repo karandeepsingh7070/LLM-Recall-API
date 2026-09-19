@@ -22,10 +22,11 @@ let generatorLoading: Promise<TextGenerationPipeline> | null = null;
 async function getGenerator(): Promise<TextGenerationPipeline> {
   if (generator) return generator;
   if (!generatorLoading) {
-    // q4 (not q8): the repo's config only declares use_external_data_format
-    // for model.onnx/model_fp16.onnx/model_q4.onnx/model_q4f16.onnx, so q8's
-    // external data file silently fails to download even though it exists.
-    generatorLoading = pipeline('text-generation', 'onnx-community/Llama-3.2-3B-Instruct-ONNX', { dtype: 'q4' }) as Promise<TextGenerationPipeline>;
+    // Larger/higher-precision alternatives (Llama-3.2-3B, Qwen2.5-3B, and
+    // Qwen2.5-1.5B at fp16) were all benchmarked against this model on the
+    // contradiction-check task and scored equal or worse — this 1.5B q8
+    // model was empirically the most reliable choice, not just the cheapest.
+    generatorLoading = pipeline('text-generation', 'onnx-community/Qwen2.5-1.5B-Instruct', { dtype: 'q8' }) as Promise<TextGenerationPipeline>;
   }
   generator = await generatorLoading;
   return generator;

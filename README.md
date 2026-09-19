@@ -72,6 +72,12 @@ Runs **fully locally** — fact extraction, embeddings, and contradiction-checki
 
 Once the models are cached, everything runs offline.
 
+## Playground
+
+Open **http://localhost:3000** while the server is running for an interactive playground — feed it text, search what it remembers, and watch a live gauge of active vs. outdated facts as the conflict-resolution logic runs. It's a static page in [public/index.html](public/index.html), served directly by the API (same origin, real requests, no mock data).
+
+![Playground preview](assets/playground-preview.webp)
+
 ## API
 
 ### `POST /memory`
@@ -92,6 +98,12 @@ curl "http://localhost:3000/search?userId=alice&q=job"
 All of a user's currently active facts.
 ```bash
 curl http://localhost:3000/profile/alice
+```
+
+### `GET /stats/:userId`
+Aggregate counts: active/outdated totals and a breakdown by fact type. Powers the playground's gauge.
+```bash
+curl http://localhost:3000/stats/alice
 ```
 
 ## MCP server
@@ -118,6 +130,8 @@ src/
   types.ts          # Zod schemas
 scripts/
   warm-models.mjs   # pre-downloads local models (run with node, not tsx)
+public/
+  index.html        # interactive playground, served at /
 ```
 
 ## Known limitations

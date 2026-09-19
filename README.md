@@ -85,7 +85,7 @@ Extract and store facts from raw text.
 ```bash
 curl -X POST http://localhost:3000/memory \
   -H "Content-Type: application/json" \
-  -d '{"userId":"alice","text":"I love hiking on weekends and I work as a software engineer."}'
+  -d '{"userId":"Karan","text":"I love hiking on weekends and I work as a software engineer."}'
 ```
 
 ### `GET /search`

@@ -91,19 +91,19 @@ curl -X POST http://localhost:3000/memory \
 ### `GET /search`
 Hybrid vector + full-text search over a user's active facts.
 ```bash
-curl "http://localhost:3000/search?userId=alice&q=job"
+curl "http://localhost:3000/search?userId=karan&q=job"
 ```
 
 ### `GET /profile/:userId`
 All of a user's currently active facts.
 ```bash
-curl http://localhost:3000/profile/alice
+curl http://localhost:3000/profile/karan
 ```
 
 ### `GET /stats/:userId`
 Aggregate counts: active/outdated totals and a breakdown by fact type. Powers the playground's gauge.
 ```bash
-curl http://localhost:3000/stats/alice
+curl http://localhost:3000/stats/karan
 ```
 
 ## MCP server
